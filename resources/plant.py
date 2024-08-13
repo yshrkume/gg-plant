@@ -1,3 +1,4 @@
+from flask import request
 from flask_restful import Resource, reqparse
 from app import db
 from models import Plant
@@ -49,8 +50,18 @@ class PlantResource(Resource):
 
 class PlantListResource(Resource):
     def get(self):
-        plants = Plant.query.all()
+        user_id = request.args.get('user_id')
+        if not user_id:
+            return {"message": "User ID is required"}, 400
+        query = request.args.get('name', "")
+        if query:
+            plants = Plant.query.filter(Plant.user_id == user_id, Plant.name.ilike(f"%{query}%")).all()
+        else:
+            plants = Plant.query.filter_by(user_id=user_id).all()
+        if not plants:
+            return {"message": "No plants found for this user"}, 404
         return [{'id': plant.id, 'name': plant.name, 'user_id': plant.user_id} for plant in plants]
+
 
     def post(self):
         args = parser.parse_args()
